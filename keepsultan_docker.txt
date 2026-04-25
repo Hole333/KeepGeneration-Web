@@ -1,8 +1,8 @@
 docker run -d \
-  --name keepsultan \
+  --name keepgeneration-web \
   -p 5010:5010 \
-  -v /root/keepsultan/uploads:/app/static/uploads \
-  -v /root/keepsultan/output:/app/static/output \
+  -v /root/keepgeneration-web/uploads:/app/static/uploads \
+  -v /root/keepgeneration-web/output:/app/static/output \
   -e "SECRET_KEY=Write it as you want" \
   --restart=unless-stopped \
-  keepsultan:latest
+  keepgeneration-web:latest

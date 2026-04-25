@@ -1,261 +1,563 @@
 <!DOCTYPE html>
-<html lang="zh">
-
+<html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Keep运动截图生成器</title>
+    <title>Keep 批量截图生成工具</title>
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}">
-    <link href="https://lib.baomitu.com/twitter-bootstrap/5.1.3/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://lib.baomitu.com/twitter-bootstrap/5.3.3/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        .form-section {
-            background: #f8f9fa;
-            border-radius: 8px;
-            padding: 20px;
-            margin-bottom: 20px;
+        :root {
+            --bg: #f4efe6;
+            --panel: rgba(255, 252, 247, 0.92);
+            --border: rgba(77, 52, 33, 0.12);
+            --primary: #d3542b;
+            --primary-dark: #9f3310;
+            --text: #2f241b;
+            --muted: #7e6654;
+            --success-soft: #eef6eb;
         }
 
-        .range-input {
-            display: flex;
-            gap: 10px;
+        body {
+            min-height: 100vh;
+            color: var(--text);
+            background:
+                radial-gradient(circle at top left, rgba(231, 152, 87, 0.35), transparent 28%),
+                radial-gradient(circle at top right, rgba(137, 180, 126, 0.22), transparent 26%),
+                linear-gradient(180deg, #fbf7f1 0%, var(--bg) 100%);
+        }
+
+        .page-shell {
+            max-width: 1220px;
+        }
+
+        .hero-card,
+        .form-card,
+        .result-card,
+        .map-card {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 24px;
+            box-shadow: 0 18px 45px rgba(72, 43, 20, 0.08);
+            backdrop-filter: blur(10px);
+        }
+
+        .hero-card {
+            overflow: hidden;
+            position: relative;
+        }
+
+        .hero-card::after {
+            content: "";
+            position: absolute;
+            inset: auto -80px -80px auto;
+            width: 240px;
+            height: 240px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(211, 84, 43, 0.20), transparent 70%);
+        }
+
+        .hero-kicker {
+            letter-spacing: 0.22em;
+            text-transform: uppercase;
+            color: var(--primary);
+            font-size: 0.78rem;
+            font-weight: 700;
+        }
+
+        .hero-title {
+            font-size: clamp(2rem, 3.8vw, 3.4rem);
+            font-weight: 800;
+            line-height: 1.05;
+        }
+
+        .hero-desc,
+        .section-desc,
+        .metric-hint {
+            color: var(--muted);
+        }
+
+        .form-card {
+            padding: 1.5rem;
+        }
+
+        .section-title {
+            font-size: 1.08rem;
+            font-weight: 700;
+            margin-bottom: 0.25rem;
+        }
+
+        .section-block + .section-block {
+            margin-top: 1.3rem;
+        }
+
+        .form-label {
+            font-weight: 600;
+        }
+
+        .form-control,
+        .form-select {
+            border-radius: 14px;
+            border-color: rgba(110, 88, 67, 0.18);
+            min-height: 48px;
+        }
+
+        .form-control:focus,
+        .form-select:focus,
+        .form-check-input:focus {
+            border-color: rgba(211, 84, 43, 0.55);
+            box-shadow: 0 0 0 0.25rem rgba(211, 84, 43, 0.12);
+        }
+
+        .range-grid {
+            display: grid;
+            grid-template-columns: 1fr auto 1fr;
+            gap: 0.75rem;
             align-items: center;
         }
 
-        .range-input input {
-            flex: 1;
+        .range-divider {
+            color: var(--muted);
+            font-weight: 700;
+        }
+
+        .slot-card {
+            border: 1px solid rgba(106, 78, 53, 0.14);
+            border-radius: 18px;
+            padding: 1rem;
+            background: rgba(255, 255, 255, 0.55);
+            height: 100%;
+        }
+
+        .slot-title {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 0.8rem;
+            font-weight: 700;
+        }
+
+        .slot-badge {
+            border-radius: 999px;
+            background: rgba(211, 84, 43, 0.1);
+            color: var(--primary-dark);
+            font-size: 0.78rem;
+            padding: 0.2rem 0.75rem;
+        }
+
+        .map-frame {
+            min-height: 260px;
+            border-radius: 20px;
+            background: linear-gradient(135deg, rgba(255, 244, 235, 0.8), rgba(244, 237, 228, 0.8));
+            border: 1px dashed rgba(92, 69, 49, 0.18);
+        }
+
+        #mapPreview {
+            max-width: 100%;
+            max-height: 320px;
+            object-fit: contain;
+            border-radius: 18px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary), #e47d3f);
+            border: none;
+            border-radius: 16px;
+            min-height: 54px;
+            font-weight: 700;
+        }
+
+        .btn-primary:hover,
+        .btn-primary:focus {
+            background: linear-gradient(135deg, var(--primary-dark), var(--primary));
+        }
+
+        .btn-outline-secondary,
+        .btn-success {
+            border-radius: 14px;
+            min-height: 48px;
+            font-weight: 600;
+        }
+
+        .result-card {
+            overflow: hidden;
+        }
+
+        .result-card img {
+            width: 100%;
+            aspect-ratio: 9 / 16;
+            object-fit: cover;
+            background: #f8f8f8;
+        }
+
+        .result-meta {
+            font-size: 0.92rem;
+            color: var(--muted);
+        }
+
+        .result-banner {
+            background: var(--success-soft);
+            border-radius: 22px;
+            border: 1px solid rgba(106, 159, 95, 0.14);
+        }
+
+        #loadingOverlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 9999;
+            background: rgba(250, 246, 240, 0.85);
+            backdrop-filter: blur(5px);
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+        }
+
+        @media (max-width: 768px) {
+            .form-card {
+                padding: 1.1rem;
+            }
+
+            .range-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .range-divider {
+                display: none;
+            }
         }
     </style>
 </head>
-
 <body>
-    <div class="container py-5">
-        <h1 class="mb-4 text-center">Keep运动截图生成器</h1>
-
-        <p class="text-center mb-4">
-            项目地址：<a href="https://github.com/eltsen00/KeepGeneration-Web" target="_blank">https://github.com/eltsen00/KeepGeneration-Web</a>
-        </p>
+    <div class="container py-4 py-lg-5 page-shell">
+        <section class="hero-card p-4 p-lg-5 mb-4">
+            <div class="row g-4 align-items-center">
+                <div class="col-lg-10">
+                    <div class="hero-kicker mb-3">Batch Keep Generator</div>
+                    <h1 class="hero-title mb-3">按日期区间批量生成 Keep 跑步截图</h1>
+                    <p class="hero-desc mb-0">
+                        支持自选起止日期、每天中午和晚上最多两次独立截图、公里数区间与配速区间反推运动时长，
+                        其余细节参数按基准值在合理范围内随机波动。
+                    </p>
+                </div>
+            </div>
+        </section>
 
         <form id="generateForm" enctype="multipart/form-data">
-            <!-- 文件上传部分 -->
-            <div class="form-section">
-                <h4>🗺️ 地图设置</h4>
-                <div class="row g-3 mb-4">
-                    <!-- 左侧：选择和上传 -->
-                    <div class="col-md-6">
-                        <div class="mb-3">
-                            <label class="form-label">预设地图</label>
-                            <select class="form-select" name="map_preset" id="mapPresetSelect">
-                                {% for map_name, map_path in map_presets.items() %}
-                                <option value="{{ map_name }}" data-url="{{ map_path }}">{{ map_name }}</option>
-                                {% endfor %}
-                            </select>
-                            <div class="form-text mt-2">选择一个预设地图</div>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">或上传自定义地图(预设地图将失效)</label>
-                            <input type="file" class="form-control" name="custom_map" id="customMapInput" accept="image/*">
-                            <div class="form-text mt-2">支持PNG/JPG/JPEG/WEBP格式，建议尺寸1000×800px</div>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">用户头像（可选）</label>
-                            <input type="file" class="form-control" name="avatar" accept="image/*">
-                            <div class="form-text mt-2">不上传将使用默认头像</div>
+            <div class="row g-4">
+                <div class="col-xl-8">
+                    <div class="form-card section-block">
+                        <div class="section-title">基础信息</div>
+                        <div class="section-desc mb-4">先确定日期区间、截图共用信息和地图资源。</div>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label">用户名</label>
+                                <input type="text" class="form-control" name="username" value="{{ default_config.username }}" required>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">开始日期</label>
+                                <input type="date" class="form-control" name="start_date" value="{{ default_config.start_date }}" required>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">结束日期</label>
+                                <input type="date" class="form-control" name="end_date" value="{{ default_config.end_date }}" required>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">地点</label>
+                                <input type="text" class="form-control" name="location" value="{{ default_config.location }}" required>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">天气</label>
+                                <input type="text" class="form-control" name="weather" value="{{ default_config.weather }}" required>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">温度</label>
+                                <input type="text" class="form-control" name="temperature" value="{{ default_config.temperature }}" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">预设地图</label>
+                                <select class="form-select" name="map_preset" id="mapPresetSelect">
+                                    {% for map_name, map_path in map_presets.items() %}
+                                    <option value="{{ map_name }}" data-url="{{ map_path }}">{{ map_name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">自定义地图</label>
+                                <input type="file" class="form-control" name="custom_map" id="customMapInput" accept="image/*">
+                            </div>
+                            <div class="col-md-6">
+                                <div class="slot-card h-100">
+                                    <div class="slot-title">
+                                        <label class="form-check-label d-flex align-items-center gap-2">
+                                            <input
+                                                class="form-check-input mt-0"
+                                                type="checkbox"
+                                                id="randomMapEnabled"
+                                                name="random_map_enabled"
+                                                {% if default_config.random_map.enabled %}checked{% endif %}
+                                            >
+                                            随机地图
+                                        </label>
+                                        <span class="slot-badge">{{ random_map_count }} 张</span>
+                                    </div>
+                                    <div class="metric-hint">
+                                        启用后会从 `static/maps/radom` 中随机抽图。
+                                        批量生成时会避免相邻截图使用相同地图，并且每次随机结果都不可预测。
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">头像</label>
+                                <input type="file" class="form-control" name="avatar" accept="image/*">
+                            </div>
+                            <div class="col-md-6">
+                                <div class="metric-hint pt-md-4">
+                                    自定义地图会覆盖预设地图。每张截图仍然单独输出，不会拼接在一张长图中。
+                                </div>
+                            </div>
                         </div>
                     </div>
-                    
-                    <!-- 右侧：地图预览 -->
-                    <div class="col-md-6 d-flex flex-column align-items-center justify-content-center">
-                        <label class="form-label mb-2">地图预览</label>
-                        <div class="border rounded bg-light p-2 d-flex align-items-center justify-content-center" style="width: 100%; height: 100%; min-height: 200px;">
-                            <img id="mapPreview" src="" alt="地图预览" style="max-height: 300px; max-width: 100%; object-fit: contain;">
+
+                    <div class="form-card section-block">
+                        <div class="section-title">每日运动场次</div>
+                        <div class="section-desc mb-4">一天最多两次，分别是中午和晚上，勾选后会为每天生成对应的独立截图。</div>
+                        <div class="row g-3">
+                            {% for slot_key, slot_config in session_windows.items() %}
+                            <div class="col-md-6">
+                                <div class="slot-card">
+                                    <div class="slot-title">
+                                        <label class="form-check-label d-flex align-items-center gap-2">
+                                            <input
+                                                class="form-check-input mt-0"
+                                                type="checkbox"
+                                                name="include_{{ slot_key }}"
+                                                {% if slot_key in default_config.session_slots %}checked{% endif %}
+                                            >
+                                            {{ slot_config.label }}
+                                        </label>
+                                        <span class="slot-badge">独立生成</span>
+                                    </div>
+                                    <div class="row g-3">
+                                        <div class="col-6">
+                                            <label class="form-label">结束时间起点</label>
+                                            <input
+                                                type="time"
+                                                class="form-control"
+                                                name="{{ slot_key }}_start"
+                                                value="{{ default_config.session_windows[slot_key][0] }}"
+                                                required
+                                            >
+                                        </div>
+                                        <div class="col-6">
+                                            <label class="form-label">结束时间终点</label>
+                                            <input
+                                                type="time"
+                                                class="form-control"
+                                                name="{{ slot_key }}_end"
+                                                value="{{ default_config.session_windows[slot_key][1] }}"
+                                                required
+                                            >
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <div class="form-card section-block">
+                        <div class="section-title">核心运动参数</div>
+                        <div class="section-desc mb-4">根据公里数范围和配速范围反推运动时长，再叠加总时长补时。</div>
+                        <div class="row g-4">
+                            <div class="col-lg-4">
+                                <label class="form-label">公里数范围 (km)</label>
+                                <div class="range-grid">
+                                    <input type="number" class="form-control" step="0.01" min="0.1" name="total_km_min" value="{{ default_config.total_km[0] }}" required>
+                                    <span class="range-divider">至</span>
+                                    <input type="number" class="form-control" step="0.01" min="0.1" name="total_km_max" value="{{ default_config.total_km[1] }}" required>
+                                </div>
+                            </div>
+                            <div class="col-lg-4">
+                                <label class="form-label">配速范围 (mm:ss / km)</label>
+                                <div class="range-grid">
+                                    <input type="text" class="form-control" name="pace_min" value="{{ default_config.pace_range[0] }}" placeholder="05:20" required>
+                                    <span class="range-divider">至</span>
+                                    <input type="text" class="form-control" name="pace_max" value="{{ default_config.pace_range[1] }}" placeholder="06:10" required>
+                                </div>
+                            </div>
+                            <div class="col-lg-4">
+                                <label class="form-label">总时长额外补时 (分钟)</label>
+                                <div class="range-grid">
+                                    <input type="number" class="form-control" min="0" name="total_time_buffer_min" value="{{ default_config.total_time_buffer_minutes[0] }}" required>
+                                    <span class="range-divider">至</span>
+                                    <input type="number" class="form-control" min="0" name="total_time_buffer_max" value="{{ default_config.total_time_buffer_minutes[1] }}" required>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-card section-block">
+                        <div class="section-title">细节参数基准</div>
+                        <div class="section-desc mb-4">以下参数以基准值为中心，上下随机波动，尽量保持每天数据真实自然。</div>
+                        <div class="row g-4">
+                            <div class="col-lg-4">
+                                <label class="form-label">累计爬升基准 (m)</label>
+                                <div class="range-grid">
+                                    <input type="number" class="form-control" min="0" name="cumulative_climb_base" value="{{ default_config.cumulative_climb.base }}" required>
+                                    <span class="range-divider">±</span>
+                                    <input type="number" class="form-control" min="0" name="cumulative_climb_fluctuation" value="{{ default_config.cumulative_climb.fluctuation }}" required>
+                                </div>
+                            </div>
+                            <div class="col-lg-4">
+                                <label class="form-label">平均步频基准</label>
+                                <div class="range-grid">
+                                    <input type="number" class="form-control" min="1" name="average_cadence_base" value="{{ default_config.average_cadence.base }}" required>
+                                    <span class="range-divider">±</span>
+                                    <input type="number" class="form-control" min="0" name="average_cadence_fluctuation" value="{{ default_config.average_cadence.fluctuation }}" required>
+                                </div>
+                            </div>
+                            <div class="col-lg-4">
+                                <label class="form-label">运动负荷基准</label>
+                                <div class="range-grid">
+                                    <input type="number" class="form-control" min="1" name="exercise_load_base" value="{{ default_config.exercise_load.base }}" required>
+                                    <span class="range-divider">±</span>
+                                    <input type="number" class="form-control" min="0" name="exercise_load_fluctuation" value="{{ default_config.exercise_load.fluctuation }}" required>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="d-grid mt-4">
+                        <button type="submit" class="btn btn-primary btn-lg">批量生成 Keep 截图</button>
+                    </div>
+                </div>
+
+                <div class="col-xl-4">
+                    <div class="form-card map-card h-100">
+                        <div class="section-title">地图预览</div>
+                        <div class="section-desc mb-3">这里只是预览底图，生成时会使用当前选择或上传的地图图片。</div>
+                        <div class="map-frame d-flex align-items-center justify-content-center p-3">
+                            <img id="mapPreview" src="" alt="地图预览">
+                        </div>
+                        <div class="metric-hint mt-3">
+                            建议上传接近 1000 × 800 的地图图片，避免生成结果出现拉伸或裁切。
                         </div>
                     </div>
                 </div>
-            </div>
-
-
-            <!-- 基础信息 -->
-            <div class="form-section">
-                <h4>👤 基本信息</h4>
-                <div class="row g-3 mb-4">
-                    <div class="col-md-6">
-                        <label class="form-label">用户名</label>
-                        <input type="text" class="form-control" name="username" value="{{ default_config.username }}"
-                            required>
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label">日期</label>
-                        <input type="date" class="form-control" name="date" value="{{ default_config.date }}" required>
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label">结束时间</label>
-                        <input type="time" class="form-control" name="end_time" value="{{ default_config.end_time }}"
-                            required>
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label">地点</label>
-                        <input type="text" class="form-control" name="location" value="{{ default_config.location }}" required>
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label">天气</label>
-                        <input type="text" class="form-control" name="weather" value="{{ default_config.weather }}" required>
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label">温度</label>
-                        <input type="text" class="form-control" name="temperature" value="{{ default_config.temperature }}" required>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 运动参数 -->
-            <div class="form-section">
-                <h4>🏃 运动参数</h4>
-                <div class="row g-3">
-                    <!-- 总公里数 -->
-                    <div class="col-md-4">
-                        <label class="form-label">总公里数范围 (km)</label>
-                        <div class="range-input">
-                            <input type="number" step="0.01" class="form-control" name="total_km_min"
-                                value="{{ default_config.total_km[0] }}" min="0" required>
-                            <span>-</span>
-                            <input type="number" step="0.01" class="form-control" name="total_km_max"
-                                value="{{ default_config.total_km[1] }}" min="0" required>
-                        </div>
-                    </div>
-
-                    <!-- 运动时间 -->
-                    <div class="col-md-4">
-                        <label class="form-label">运动时间范围</label>
-                        <div class="range-input">
-                            <input type="text" class="form-control" name="sport_time_min"
-                                value="{{ default_config.sport_time[0] }}" required>
-                            <span>-</span>
-                            <input type="text" class="form-control" name="sport_time_max"
-                                value="{{ default_config.sport_time[1] }}" required>
-                        </div>
-                    </div>
-
-                    <!-- 总时间 -->
-                    <div class="col-md-4">
-                        <label class="form-label">总时间范围</label>
-                        <div class="range-input">
-                            <input type="text" class="form-control" name="total_time_min"
-                                value="{{ default_config.total_time[0] }}" required>
-                            <span>-</span>
-                            <input type="text" class="form-control" name="total_time_max"
-                                value="{{ default_config.total_time[1] }}" required>
-                        </div>
-                    </div>
-
-                    <!-- 累计爬升 -->
-                    <div class="col-md-4">
-                        <label class="form-label">累计爬升 (米)</label>
-                        <div class="range-input">
-                            <input type="number" class="form-control" name="cumulative_climb_min"
-                                value="{{ default_config.cumulative_climb[0] }}" min="0" required>
-                            <span>-</span>
-                            <input type="number" class="form-control" name="cumulative_climb_max"
-                                value="{{ default_config.cumulative_climb[1] }}" min="0" required>
-                        </div>
-                    </div>
-
-                    <!-- 平均步频 -->
-                    <div class="col-md-4">
-                        <label class="form-label">平均步频 (步/分钟)</label>
-                        <div class="range-input">
-                            <input type="number" class="form-control" name="average_cadence_min"
-                                value="{{ default_config.average_cadence[0] }}" min="0" required>
-                            <span>-</span>
-                            <input type="number" class="form-control" name="average_cadence_max"
-                                value="{{ default_config.average_cadence[1] }}" min="0" required>
-                        </div>
-                    </div>
-
-                    <!-- 运动负荷 -->
-                    <div class="col-md-4">
-                        <label class="form-label">运动负荷</label>
-                        <div class="range-input">
-                            <input type="number" class="form-control" name="exercise_load_min"
-                                value="{{ default_config.exercise_load[0] }}" min="0" required>
-                            <span>-</span>
-                            <input type="number" class="form-control" name="exercise_load_max"
-                                value="{{ default_config.exercise_load[1] }}" min="0" required>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="d-grid gap-2 mt-4">
-                <button type="submit" class="btn btn-primary btn-lg">🚀 生成运动数据图</button>
             </div>
         </form>
-    </div>
-    <div class="modal fade" id="resultModal" tabindex="-1" aria-hidden="true" style="display: none;">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">🎉 生成成功！</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body text-center">
-                    <img id="resultImage" src="" class="img-fluid mb-3 shadow-sm rounded" alt="Result">
-                    <div class="d-grid gap-2 col-8 mx-auto">
-                        <a id="downloadBtn" href="#" class="btn btn-success btn-lg">📥 下载原图</a>
+
+        <section id="resultSection" class="mt-5 d-none">
+            <div class="result-banner p-4 p-lg-4 mb-4">
+                <div class="row g-3 align-items-center">
+                    <div class="col-lg-8">
+                        <div class="section-title mb-1">生成完成</div>
+                        <div id="resultSummary" class="section-desc mb-0"></div>
+                        <div id="saveDirText" class="result-meta mt-2"></div>
+                    </div>
+                    <div class="col-lg-4 text-lg-end">
+                        <a id="batchDownloadBtn" href="#" class="btn btn-success px-4">下载全部截图 ZIP</a>
                     </div>
                 </div>
             </div>
-        </div>
+            <div id="resultGrid" class="row g-4"></div>
+        </section>
     </div>
 
-    <!-- 加载中遮罩 -->
-    <div id="loadingOverlay"
-        style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(255,255,255,0.8); z-index:9999; justify-content:center; align-items:center; flex-direction:column;">
-        <div class="spinner-border text-primary mb-3" style="width: 3rem; height: 3rem;" role="status"></div>
-        <h4 class="text-primary">正在生成运动数据和轨迹...</h4>
+    <div id="loadingOverlay">
+        <div class="spinner-border text-danger mb-3" style="width: 3.25rem; height: 3.25rem;" role="status"></div>
+        <h4 class="mb-2">正在批量生成截图</h4>
+        <div class="text-muted">会按日期和中午/晚上场次逐张输出 Keep 截图</div>
     </div>
-    <script src="https://lib.baomitu.com/twitter-bootstrap/5.1.3/js/bootstrap.bundle.min.js"></script>
+
+    <script src="https://lib.baomitu.com/twitter-bootstrap/5.3.3/js/bootstrap.bundle.min.js"></script>
     <script>
-        // Map Preview Logic
         const mapPresetSelect = document.getElementById('mapPresetSelect');
         const customMapInput = document.getElementById('customMapInput');
+        const randomMapEnabled = document.getElementById('randomMapEnabled');
         const mapPreview = document.getElementById('mapPreview');
+        const resultSection = document.getElementById('resultSection');
+        const resultGrid = document.getElementById('resultGrid');
+        const resultSummary = document.getElementById('resultSummary');
+        const saveDirText = document.getElementById('saveDirText');
+        const batchDownloadBtn = document.getElementById('batchDownloadBtn');
 
         function updateMapPreview() {
+            if (randomMapEnabled.checked) {
+                mapPreview.src = {{ (random_map_preview or url_for('static', filename='maps/default.png'))|tojson }};
+                return;
+            }
+
             const file = customMapInput.files[0];
             if (file) {
-                // If custom file selected, show it
                 const reader = new FileReader();
-                reader.onload = function (e) {
-                    mapPreview.src = e.target.result;
-                }
+                reader.onload = function(event) {
+                    mapPreview.src = event.target.result;
+                };
                 reader.readAsDataURL(file);
-            } else {
-                // Show preset
-                const selectedOption = mapPresetSelect.options[mapPresetSelect.selectedIndex];
-                const url = selectedOption.getAttribute('data-url');
-                mapPreview.src = url;
+                return;
             }
+
+            const selectedOption = mapPresetSelect.options[mapPresetSelect.selectedIndex];
+            mapPreview.src = selectedOption.getAttribute('data-url');
         }
 
-        // Event Listeners
-        mapPresetSelect.addEventListener('change', function() {
-            // Clear custom file input when preset changes so preset takes effect
-            customMapInput.value = ''; 
+        function renderResults(data) {
+            resultGrid.innerHTML = '';
+            resultSection.classList.remove('d-none');
+            resultSummary.textContent = `共生成 ${data.generated_count} 张截图。每张图片都是独立的 Keep 截图，批量压缩包也已准备好。`;
+            saveDirText.textContent = `已直接保存到项目目录：${data.save_dir}`;
+            batchDownloadBtn.href = data.batch_download_url;
+
+            data.images.forEach((item) => {
+                const col = document.createElement('div');
+                col.className = 'col-md-6 col-xl-4';
+                col.innerHTML = `
+                    <div class="result-card h-100">
+                        <img src="${item.preview_url}" alt="${item.summary}">
+                        <div class="p-3">
+                            <div class="fw-bold mb-2">${item.date} ${item.slot_label}</div>
+                            <div class="result-meta mb-3">${item.summary}</div>
+                            <div class="d-grid">
+                                <a href="${item.download_url}" class="btn btn-outline-secondary">下载这张截图</a>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                resultGrid.appendChild(col);
+            });
+
+            resultSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        function validateSessionSelection(form) {
+            const checked = form.querySelectorAll('input[name="include_noon"]:checked, input[name="include_evening"]:checked');
+            if (!checked.length) {
+                alert('请至少选择一个生成时段。');
+                return false;
+            }
+            return true;
+        }
+
+        mapPresetSelect.addEventListener('change', () => {
+            customMapInput.value = '';
             updateMapPreview();
         });
 
+        randomMapEnabled.addEventListener('change', updateMapPreview);
         customMapInput.addEventListener('change', updateMapPreview);
-
-        // Initialize
         updateMapPreview();
 
-        document.getElementById('generateForm').addEventListener('submit', async function (e) {
-            e.preventDefault();
+        document.getElementById('generateForm').addEventListener('submit', async function(event) {
+            event.preventDefault();
+
+            if (!validateSessionSelection(this)) {
+                return;
+            }
 
             const loading = document.getElementById('loadingOverlay');
             const submitBtn = this.querySelector('button[type="submit"]');
-            
-            // 显示加载状态
             loading.style.display = 'flex';
             submitBtn.disabled = true;
 
@@ -267,18 +569,14 @@
                 });
 
                 const data = await response.json();
-
-                if (data.success) {
-                    // 更新并显示模态框
-                    document.getElementById('resultImage').src = data.image_url;
-                    document.getElementById('downloadBtn').href = data.download_url;
-                    new bootstrap.Modal(document.getElementById('resultModal')).show();
-                } else {
-                    alert('生成失败: ' + (data.error || '未知错误'));
+                if (!response.ok || !data.success) {
+                    throw new Error(data.error || '生成失败');
                 }
+
+                renderResults(data);
             } catch (error) {
-                console.error('Error:', error);
-                alert('网络请求出错，请检查控制台');
+                console.error(error);
+                alert(`生成失败：${error.message}`);
             } finally {
                 loading.style.display = 'none';
                 submitBtn.disabled = false;
@@ -286,5 +584,4 @@
         });
     </script>
 </body>
-
 </html>

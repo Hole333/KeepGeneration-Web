@@ -3,6 +3,11 @@
 KeepSultan (refactored)
 -----------------------
 
+Derivative notice:
+This module is based on the KeepSultan family of projects. See the repository
+root README.md, NOTICE, and ATTRIBUTION.md for upstream attribution and license
+notes.
+
 关键改动：
 1) 以数据类管理配置（支持从 JSON 读取/写回偏好与默认设置合并）。
 2) 支持 Avatar / Map 既可本地文件也可 HTTP(S) URL（含本地缓存）。
@@ -30,12 +35,17 @@ from dataclasses import dataclass, field, asdict
 from datetime import datetime, timedelta
 from io import BytesIO
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple, Union, Literal
+from typing import Any, Dict, Optional, Tuple, Union, Literal
 
 from urllib.parse import urlparse
 from urllib.request import urlopen, Request
 
 from PIL import Image, ImageDraw, ImageFont
+BASE_DIR = Path(__file__).resolve().parent
+
+
+def _asset_path(*parts: str) -> str:
+    return str(BASE_DIR.joinpath(*parts))
 
 # ------------------------------
 # 类型与工具
@@ -149,8 +159,8 @@ class KeepConfig:
     注：avatar 与 map 支持本地路径或 HTTP(S) URL。
     """
     # 资源
-    template: str = "scr/template.png"
-    map: str = "scr/map.png"
+    template: str = _asset_path("static", "default_template.png")
+    map: str = _asset_path("static", "maps", "default.png")
     avatar: str = ""
     username: str = ""
 
@@ -168,12 +178,11 @@ class KeepConfig:
     cumulative_climb: NumberRange = field(default_factory=lambda: NumberRange(90, 96, precision=0))
     average_cadence: NumberRange = field(default_factory=lambda: NumberRange(76, 81, precision=0))
     exercise_load: NumberRange = field(default_factory=lambda: NumberRange(48, 51, precision=0))
-
     # 字体样式（可进一步外置到 JSON）
-    font_regular: TextStyle = field(default_factory=lambda: TextStyle("fonts/SourceHanSansCN-Regular.otf", 36, (0, 0, 0)))
-    font_bold_big: TextStyle = field(default_factory=lambda: TextStyle("fonts/QanelasBlack.otf", 180, (0, 0, 0)))
-    font_semibold: TextStyle = field(default_factory=lambda: TextStyle("fonts/QanelasSemiBold.otf", 65, (0, 0, 0)))
-    font_clock: TextStyle = field(default_factory=lambda: TextStyle("fonts/SourceHanSansCN-Regular.otf", 40, (0, 0, 0)))
+    font_regular: TextStyle = field(default_factory=lambda: TextStyle(_asset_path("fonts", "SourceHanSansCN-Regular.otf"), 36, (0, 0, 0)))
+    font_bold_big: TextStyle = field(default_factory=lambda: TextStyle(_asset_path("fonts", "QanelasBlack.otf"), 180, (0, 0, 0)))
+    font_semibold: TextStyle = field(default_factory=lambda: TextStyle(_asset_path("fonts", "QanelasSemiBold.otf"), 65, (0, 0, 0)))
+    font_clock: TextStyle = field(default_factory=lambda: TextStyle(_asset_path("fonts", "SourceHanSansCN-Regular.otf"), 40, (0, 0, 0)))
 
     # 偏好文件（可记录最近保存路径、上次用户名等）
     prefs_file: str = "keepsultan_prefs.json"
@@ -434,9 +443,9 @@ class KeepSultanApp:
             sport_time = total_time
 
         start_time = self.calculate_start_time(end_time, total_time)
-        total_km = self.cfg.total_km.sample()
+        total_km = round(float(self.cfg.total_km.sample()), 2)
+        total_km_text = f"{total_km:.2f}"
         # 轻微加 0.01，避免随机数取不到两位的情形
-        total_km = round(float(total_km) + 0.01, 2) if isinstance(total_km, float) else total_km
 
         pace = self.calculate_pace(float(total_km), sport_time)
         cost = self.calculate_cost(total_time)
@@ -445,7 +454,8 @@ class KeepSultanApp:
         average_cadence = self.cfg.average_cadence.sample()
         exercise_load = self.cfg.exercise_load.sample()
 
-        self.logger.info(f"Generated data: date={date}, username={self.cfg.username}, end_time={end_time}, start_time={start_time}, total_km={total_km}, sport_time={sport_time}, total_time={total_time}, pace={pace}, cost={cost}, cumulative_climb={cumulative_climb}, average_cadence={average_cadence}, exercise_load={exercise_load}")
+        self.logger.info(f"Generated data: date={date}, username={self.cfg.username}, end_time={end_time}, start_time={start_time}, total_km={total_km_text}, sport_time={sport_time}, total_time={total_time}, pace={pace}, cost={cost}, cumulative_climb={cumulative_climb}, average_cadence={average_cadence}, exercise_load={exercise_load}")
+        total_km = total_km_text
 
         # 5) 文本绘制（坐标与字体取自原始脚本）
         self.editor.draw_text(end_time[:5], (50, 25), self.cfg.font_clock)  # 系统时间 HH:MM
@@ -460,7 +470,8 @@ class KeepSultanApp:
         self.editor.draw_text(str(cost), (800, 1750), self.cfg.font_semibold)      # 运动消耗
 
         self.editor.draw_text(str(total_time), (55, 1910), self.cfg.font_semibold)  # 总时长
-        self.editor.draw_text(str(cumulative_climb), (445, 1910), self.cfg.font_semibold)  # 累计爬升
+        climb_x = 405 if safe_int(cumulative_climb) >= 100 else 445
+        self.editor.draw_text(str(cumulative_climb), (climb_x, 1910), self.cfg.font_semibold)  # 累计爬升
         # 对齐规则：>100 与 <=100 使用不同起点（兼容原脚本）
         cad_x = 790 if safe_int(average_cadence) > 100 else 820
         self.editor.draw_text(str(average_cadence), (cad_x, 1910), self.cfg.font_semibold)  # 平均步频

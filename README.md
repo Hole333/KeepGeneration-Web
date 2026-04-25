@@ -1,87 +1,84 @@
-# KeepGenertion Web: 网页版Keep跑步截图生成器
+# KeepGeneration Web 🏃‍♂️
 
-## 🌐 项目简介
+一个网页版的 Keep 风格跑步截图生成器。
 
-KeepGenertion Web 是基于[KeepSultan](https://github.com/Carzit/KeepSultan)开发的网页版工具，将原项目的核心功能迁移至浏览器环境，无需安装即可生成Keep风格跑步截图。
+这个项目主要是我在 [eltsen00/KeepGeneration-Web](https://github.com/eltsen00/KeepGeneration-Web) 的基础上继续改出来的版本，上游项目又基于 [Carzit/KeepSultan](https://github.com/Carzit/KeepSultan)。感谢两位作者的开源和思路 🙏
 
-## 🚀 在线体验
+## ✨ 能做什么
 
-[立即使用](https://keep.hshoe.cn)  
-无需安装，打开即用
+- 🖼️ 上传头像和地图图片
+- 🏃 自定义跑步公里数、时间、地点、天气、温度等信息
+- 📅 按日期范围批量生成截图
+- 🌞 支持中午、晚上两个时间段
+- 🎲 参数可以在范围内随机波动
+- 🗺️ 支持预设地图，也可以上传自己的地图
+- 📦 生成后可以直接下载图片或 zip 包
+- 🐳 支持 Docker 部署
 
-## ✨ 核心功能
-
-### 1. 全功能网页化实现
-- 完整保留原项目所有参数自定义能力
-- 响应式设计，支持电脑/手机浏览器访问
-- 支持预览生成效果
-
-### 2. 增强特性
-- **拖拽上传**：支持直接拖拽图片到上传区域
-- **智能随机生成**：参数填写范围每次自动随机
-
-### 3. 功能改进
-- **修复生成逻辑问题**：修复步频超过三位数时生成图片的越界问题
-- **地点天气温度**：在原项目基础上添加地点天气温度的生成并实现自定义功能
-- **字体改进**：使用keep官方字体
-- **预设地图**：添加更多预设地图，更适合SYSU的使用
-
-
-## 🛠️ 使用指南
-
-### 基本使用
-1. 上传头像（建议1:1比例）
-2. 上传地图（建议35:28比例）
-3. 修改随机生成运动参数
-4. 点击"生成截图"按钮
-5. 下载结果
-
-### 参数说明
-- 日期（date）
-- 地点（location）
-- 天气（weather）
-- 温度（temperature）
-- 结束时间（end_time）
-- 跑步总里程（total_km）
-- 运动时间（sport_time）
-- 总计时间（total_time）
-- 累计爬升（cumulative_climb）
-- 平均步频（average_cadence）
-- 运动负荷（exercise_load）
-
-我们建议您上传的头像图片宽高比为1:1，地图图片宽高比为35:28
-
-
-## 🐳 Docker 部署
-
-本项目已发布 Docker 镜像到 Docker Hub，可以通过以下命令快速部署：
-
-1. **拉取镜像**
+## 🚀 本地运行
 
 ```bash
-docker pull eltsen00/keepsultan:latest
+cd keep-html
+pip install -r requirements.txt
+python app.py
 ```
 
-2. **运行容器**
+启动后打开终端里显示的地址即可，一般是：
+
+```text
+http://127.0.0.1:5010
+```
+
+## 🐳 Docker 运行
+
+先构建镜像：
+
+```bash
+cd keep-html
+docker build -t keepgeneration-web:latest .
+```
+
+再启动容器：
 
 ```bash
 docker run -d \
-  --name keepsultan \
+  --name keepgeneration-web \
   -p 5010:5010 \
   -v ./uploads:/app/static/uploads \
   -v ./output:/app/static/output \
   -e "SECRET_KEY=your_secret_key_here" \
   --restart=unless-stopped \
-  eltsen00/keepsultan:latest
+  keepgeneration-web:latest
 ```
 
-另外，本项目也提供的源代码，放置在keep-html文件夹中，可以直接在机器本地部署，需要的依赖已在/keep-html/requirements.txt中写明
+## 📝 二次开发说明
 
-## 📜 免责声明
+这个仓库不是从零开始写的，而是基于这些项目继续修改：
 
-本工具仅供个人学习与研究使用，与Keep官方无任何关联。使用者应对生成内容负责，开发者不承担由此产生的任何责任。
+- [eltsen00/KeepGeneration-Web](https://github.com/eltsen00/KeepGeneration-Web)
+- [Carzit/KeepSultan](https://github.com/Carzit/KeepSultan)
 
-## ❤️ 致谢
+我主要做了一些网页端功能、批量生成、地图选择、部署说明和开源整理相关的修改。
 
-- 原项目开发者 [Carzit](https://github.com/Carzit)
-- 所有贡献者和用户
+更详细的来源说明可以看 [ATTRIBUTION.md](ATTRIBUTION.md) 和 [NOTICE](NOTICE)。
+
+## ⚠️ 小提醒
+
+- 本项目仅供学习、研究和个人使用。
+- 生成内容怎么使用，需要使用者自己负责。
+- 如果你继续 fork 或二次开发，记得保留上游项目链接和署名。
+- 由于直接上游仓库目前没有明确展示 License，正式公开分发或商业使用前，建议先确认授权。
+
+## 📄 License
+
+本仓库中我新增和修改的部分使用 MIT License 发布，详见 [LICENSE](LICENSE)。
+
+上游项目已有内容仍然遵守它们原本的授权和说明。
+
+## ❤️ Thanks
+
+感谢：
+
+- [eltsen00/KeepGeneration-Web](https://github.com/eltsen00/KeepGeneration-Web)
+- [Carzit/KeepSultan](https://github.com/Carzit/KeepSultan)
+- 以及所有愿意折腾、分享和改进这个小工具的人
